@@ -38,9 +38,25 @@ Menu principal: que es el menu con el que se realizaran todas las operaciones, e
 
 ![image](https://github.com/rauudy/ACE1-23VJ0778201901973PRA2/assets/66295181/a6b0a655-b3d4-4904-9661-8c684ad0c792)
 
+Menu productos: se utilizo de la misma forma que el menu principal, donde se imprime las cadenas que dicen el apartado, y haciendo una comparacion en HEX con AL lo manda a la intruccion que desea:
 
+![image](https://github.com/rauudy/ACE1-23VJ0778201901973PRA2/assets/66295181/d034234a-5fa2-4f8b-a980-93706d183b3e)
 
+El siguiente es para ingresar un producto al archivo, donde se le pondra el titilo al product:
 
+![image](https://github.com/rauudy/ACE1-23VJ0778201901973PRA2/assets/66295181/91681e0b-9edf-4fee-9be2-2227f94804f4)
+
+el siguiente es para crear el archivo de productos, con el archivo_prods, que es el nombre con la extencion que se inicializo al principio y lo dejara abierto, el archivo:
+
+![image](https://github.com/rauudy/ACE1-23VJ0778201901973PRA2/assets/66295181/c25de4b0-5a72-4b66-9f7f-0067ae480eec)
+
+Menu ventas, de igual forma se imprimio las cadenas y se hizo comparacion para acceder a la opcion que desea el usuaio:
+
+![image](https://github.com/rauudy/ACE1-23VJ0778201901973PRA2/assets/66295181/a7a3c277-e50a-4c70-b360-5bed2598a016)
+
+Generar catalogo, en esta se crea con el nombre y extencion que se inicializo al principio de todo, se mueve un iedntificador para el encabezado del html, para luego inicializar la tabla:
+
+![image](https://github.com/rauudy/ACE1-23VJ0778201901973PRA2/assets/66295181/4f55804d-5b8e-439d-b3fe-91ad7ab362ee)
 
 
 
