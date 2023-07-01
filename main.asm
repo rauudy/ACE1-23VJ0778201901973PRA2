@@ -16,8 +16,8 @@ nombre_conf            db     "PRA2.CON", 00
 ;;
 tam_encabezado_html    db     0c
 encabezado_html        db     "<html><body>"
-tam_inicializacion_tabla   db   3e
-inicializacion_tabla   db     '<table border="1"><tr><td>codigo</td><td>descripcion</td></tr>'
+tam_inicializacion_tabla   db   5e
+inicializacion_tabla   db     '<table border="3"><tr><td>codigo</td><td>descripcion</td><td>precio</td><td>unidades</td></tr>'
 tam_cierre_tabla       db     8
 cierre_tabla           db     "</table>"
 tam_footer_html        db     0e
@@ -40,27 +40,35 @@ numero           db   05 dup (30)
 nombre_usuario       db    "rau123",0a,"$"
 clave_usuario       db    "201901973",0a,"$"
 fallo       db    "Nel carnal",0a,"$"
-archivo_no_existente_msg db "El archivo de credenciales no existe",0a,"$"
+archivo_no_existente_msg db "El archivo de credenciales no es correcto",0a,"$"
 ;;
 usac       db    "Universidad de San Carlos de Guatemala",0a,"$"
 facultad   db    "Facultad de Ingenieria",0a,"$"
 curso      db    "Arquitectura de Computadoras y Ensambladores 1",0a,"$"
 nombre     db    "Raudy David Cabrera Contreras",0a,"$"
 carne      db    "201901973",0a,"$"
+nom_menu  db    	"----------------MENU----------------",0a,"$"
 productos  db    "(P)roductos",0a,"$"
 ventas     db    "(V)entas",0a,"$"
 herramientas db  "(H)erramientas",0a,"$"
-titulo_producto db  "PRODUCTOS",0a,"$"
+salir_programa db  "(E)xit",0a,"$"
+titulo_producto db  "-------------PRODUCTOS--------------",0a,"$"
 sub_prod        db  "=========",0a,"$"
-titulo_ventas   db  "VENTAS",0a,"$"
+titulo_ventas   db  "---------------VENTAS---------------",0a,"$"
 sub_vent        db  "======",0a,"$"
-titulo_herras   db  "HERRAMIENTAS",0a,"$"
+titulo_herras   db  "------------HERRAMIENTAS------------",0a,"$"
 sub_herr        db  "============",0a,"$"
 prompt     db    "Elija una opcion:",0a,"$"
 prompt_code      db    "Codigo: ","$"
 prompt_name      db    "Nombre: ","$"
 prompt_price     db    "Precio: ","$"
 prompt_units     db    "Unidades: ","$"
+;ventas
+registrar_venta     db    "(N)uevo registro de venta",0a,"$"
+resumen_venta     db    "(G)enerar resumen",0a,"$"
+prompt_code_vent     db    "Codigo del producto: ","$"
+prompt_units_vent     db    "Unidades a vender: ","$"
+
 temp       db    00,"$"
 nueva_lin  db    0a,"$"
 numeroA    db    0ff
@@ -72,8 +80,14 @@ mostrar_prod     db  "(M)ostrar productos",0a,"$"
 ingresar_prod    db  "(I)ngresar producto",0a,"$"
 editar_prod      db  "(E)ditar producto",0a,"$"
 borrar_prod      db  "(B)orrar producto",0a,"$"
+regresar_menu_principal      db  "(R)egresar principal",0a,"$"
 prods_registrados db "Productos registrados:",0a,"$"
 ;;; temps
+catalogo_completo    db  "(C)atalogo completo",0a,"$"
+reporte_alfa   db  "(R)eporte alfabetico",0a,"$"
+reporte_venta     db  "(G)enerar reporte de venta",0a,"$"
+reporte_productos      db  "(K)Generar reporte de productos",0a,"$"
+;;
 cod_prod_temp    db    05 dup (0)
 puntero_temp     dw    0000
 ;; "ESTRUCTURA PRODUCTO"
@@ -88,6 +102,9 @@ num_units   dw    0000
 ;; archivo productos
 archivo_prods    db   "PROD.BIN",00
 handle_prods     dw   0000
+;; archivo ventas
+archivo_vent   db   "VENT.BIN",00
+handle_vent     dw   0000
 ;;
 nombre_rep1      db   "CATALG.HTM",00
 handle_reps      dw   0000
@@ -95,9 +112,9 @@ handle_reps      dw   0000
 .CODE
 .STARTUP
 
-print macro cadena
+print macro texto
     mov ah, 09h 
-    mov dx, offset cadena
+    mov dx, offset texto
     int 21h
 endm
 
@@ -144,9 +161,7 @@ empezar:
 		call cadenas_iguales
 		cmp DL, 0ff
 		jne credencialesMal
-
-
-
+		
 		;;
 		;; ENCABEZADO
 		mov DX, offset usac
@@ -173,6 +188,7 @@ menu_principal:
 		mov DX, offset nueva_lin
 		mov AH, 09
 		int 21
+		print nom_menu
 		;; Menú
 		mov DX, offset productos
 		mov AH, 09
@@ -183,6 +199,11 @@ menu_principal:
 		mov DX, offset herramientas
 		mov AH, 09
 		int 21
+		; salir
+		mov DX, offset salir_programa
+		mov AH, 09
+		int 21
+
 		mov DX, offset nueva_lin
 		mov AH, 09
 		int 21
@@ -197,10 +218,16 @@ menu_principal:
 		je menu_productos
 		cmp AL, 76 ;; v minúscula ascii
 		je menu_ventas 
+		cmp AL, 65 ;; v minúscula ascii
+		je fin
 		cmp AL, 68 ;; h minúscula ascii
 		je generar_catalogo 
 		jmp menu_principal
 menu_productos:
+		mov DX, offset nueva_lin
+		mov AH, 09
+		int 21
+		print titulo_producto
 		mov DX, offset nueva_lin
 		mov AH, 09
 		int 21
@@ -216,6 +243,15 @@ menu_productos:
 		mov DX, offset borrar_prod
 		mov AH, 09
 		int 21
+
+		mov DX, offset regresar_menu_principal ;regresar menu
+		mov AH, 09
+		int 21
+		
+		mov DX, offset prompt ;opcion
+		mov AH, 09
+		int 21
+
 		mov AH, 08
 		int 21
 		;;
@@ -230,8 +266,52 @@ menu_productos:
 		je ingresar_producto_archivo
 		cmp AL, 6d ;; mostrar
 		je mostrar_productos_archivo
+		;jmp menu_productos
+		cmp AL, 72 ;; regresar a menu principal
+		je menu_principal
+		
 		jmp menu_productos
 		;;
+
+; menu_ventas:
+; 		mov DX, offset nueva_lin
+; 		mov AH, 09
+; 		int 21
+; 		mov DX, offset registrar_venta
+; 		mov AH, 09
+; 		int 21
+; 		mov DX, offset resumen_venta
+; 		mov AH, 09
+; 		int 21
+
+; 		mov DX, offset regresar_menu_principal ;regresar menu
+; 		mov AH, 09
+; 		int 21
+		
+; 		mov DX, offset prompt ;opcion
+; 		mov AH, 09
+; 		int 21
+
+; 		mov AH, 08
+; 		int 21
+; 		;;
+; 		mov DX, offset prompt
+; 		mov AH, 09
+; 		int 21
+; 		;; AL = CARACTER LEIDO
+; 		cmp AL, 72 ;; registrar venta
+; 		je eliminar_producto_archivo
+		
+; 		cmp AL, 65 ;; editar
+; 		cmp AL, 69 ;; insertar
+; 		je ingresar_producto_archivo
+; 		cmp AL, 6d ;; mostrar
+; 		je mostrar_productos_archivo
+; 		;jmp menu_productos
+; 		cmp AL, 72 ;; regresar a menu principal
+; 		je menu_principal
+; 		jmp menu_productos
+; 		;;
 ingresar_producto_archivo:
 		mov DX, offset titulo_producto
 		mov AH, 09
@@ -481,6 +561,7 @@ ciclo_mostrar:
 		mov DX, offset num_price
 		mov AH, 3f
 		int 21
+		;nuevo
 		;; ¿cuántos bytes leímos?
 		;; si se leyeron 0 bytes entonces se terminó el archivo...
 		cmp AX, 0000
@@ -572,66 +653,120 @@ ciclo_encontrar:
 		je borrar_encontrado
 		jmp ciclo_encontrar
 borrar_encontrado:
-		mov DX, [puntero_temp]
-		sub DX, 2a
-		mov CX, 0000
-		mov BX, [handle_prods]
-		mov AL, 00
-		mov AH, 42
-		int 21
-		;;; puntero posicionado
-		mov CX, 2a
-		mov DX, offset ceros
-		mov AH, 40
-		int 21
+	mov DX, [puntero_temp]
+	sub DX, 2a
+	mov CX, 0000
+	mov BX, [handle_prods]
+	mov AL, 00
+	mov AH, 42
+	int 21
+	;;; puntero posicionado
+	mov CX, 2a
+	mov DX, offset ceros
+	mov AH, 40
+	int 21
 finalizar_borrar:
-		mov BX, [handle_prods]
-		mov AH, 3e
-		int 21
-		jmp menu_productos
+	mov BX, [handle_prods]
+	mov AH, 3e
+	int 21
+	jmp menu_productos
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 menu_ventas:
-		mov DX, offset titulo_ventas
-		mov AH, 09
-		int 21
-		mov DX, offset sub_vent
-		mov AH, 09
-		int 21
-		jmp fin
+	mov DX, offset nueva_lin
+	mov AH, 09
+	int 21
+	mov DX, offset titulo_ventas
+	mov AH, 09
+	int 21
+	; mov DX, offset sub_vent
+	; mov AH, 09
+	; int 21
+
+	mov DX, offset nueva_lin
+	mov AH, 09
+	int 21
+	mov DX, offset registrar_venta
+	mov AH, 09
+	int 21
+	mov DX, offset resumen_venta
+	mov AH, 09
+	int 21
+
+	mov DX, offset regresar_menu_principal ;regresar menu
+	mov AH, 09
+	int 21
+	
+	mov DX, offset prompt ;opcion
+	mov AH, 09
+	int 21
+
+	mov AH, 08
+	int 21
+	;;
+	mov DX, offset prompt
+	mov AH, 09
+	int 21
+	;; AL = CARACTER LEIDO
+	cmp AL, 6e ;; registrar venta
+	je registrar_nueva_venta_ventas
+	jmp menu_principal
+
+	cmp AL, 67 ;; generar el reporte de ventas
+	je menu_principal
+	jmp menu_ventas
+
+	cmp AL, 72 ;; regresar a menu principal
+	je menu_principal
+	jmp menu_ventas
+	;;
+
+registrar_nueva_venta_ventas:
+	mov DX, offset prompt_code_vent  ;regresar menu
+	mov AH, 09
+	int 21
+
+	mov DX, offset prompt_units_vent  ;regresar menu
+	mov AH, 09
+	int 21
+
+	jmp menu_ventas
+
+
 menu_herramientas:
-		mov DX, offset titulo_herras
-		mov AH, 09
-		int 21
-		mov DX, offset sub_herr
-		mov AH, 09
-		int 21
-		jmp fin
+	mov DX, offset titulo_herras
+	mov AH, 09
+	int 21
+	mov DX, offset sub_herr
+	mov AH, 09
+	int 21
+	jmp fin
 generar_catalogo:
-		mov AH, 3c
-		mov CX, 0000
-		mov DX, offset nombre_rep1
-		int 21
-		mov [handle_reps], AX
-		mov BX, AX
-		mov AH, 40
-		mov CH, 00
-		mov CL, [tam_encabezado_html]
-		mov DX, offset encabezado_html
-		int 21
-		mov BX, [handle_reps]
-		mov AH, 40
-		mov CH, 00
-		mov CL, [tam_inicializacion_tabla]
-		mov DX, offset inicializacion_tabla
-		int 21
-		;;
-		mov AL, 02
-		mov AH, 3d
-		mov DX, offset archivo_prods
-		int 21
-		;;
-		mov [handle_prods], AX
-		;; leemos
+	;;crear el archivo del catalogo.html
+	mov AH, 3c
+	mov CX, 0000
+	mov DX, offset nombre_rep1
+	int 21
+	mov [handle_reps], AX
+	mov BX, AX
+	mov AH, 40
+	mov CH, 00
+	mov CL, [tam_encabezado_html]
+	mov DX, offset encabezado_html
+	int 21
+	mov BX, [handle_reps]
+	mov AH, 40
+	mov CH, 00
+	mov CL, [tam_inicializacion_tabla]
+	mov DX, offset inicializacion_tabla
+	int 21
+	;;
+	mov AL, 02
+	mov AH, 3d
+	mov DX, offset archivo_prods
+	int 21
+	;;
+	mov [handle_prods], AX
+	;; leemos
 ciclo_mostrar_rep1:
 		;; puntero cierta posición
 		mov BX, [handle_prods]
@@ -686,7 +821,41 @@ fin_mostrar_rep1:
 ;; SALIDAS:
 ;;     o Impresión de estructura
 imprimir_estructura:
-		mov DI, offset cod_name
+	mov DI, offset cod_name
+	; -------------------------------------------------------------------
+; ciclo_poner_dolar_1:
+; 	mov AL, [DI]
+; 	cmp AL, 00
+; 	je poner_dolar_1
+; 	inc DI
+; 	jmp ciclo_poner_dolar_1
+; poner_dolar_1:
+; 	mov AL, 24  ;; dólar
+; 	mov [DI], AL
+; 	;; imprimir normal
+; 	mov DX, offset cod_name
+; 	mov AH, 09
+; 	int 21
+; 	mov DX, offset nueva_lin
+; 	mov AH, 09
+; 	int 21
+; 	mov AX, [num_price]
+; 	call numAcadena
+; 	;; [numero] tengo la cadena convertida
+; 	mov BX, 0001
+; 	mov CX, 0005
+; 	mov DX, offset numero
+; 	mov AH, 40
+; 	int 21
+; 	mov DX, offset nueva_lin
+; 	mov AH, 09
+; 	int 21
+; 	; mov DX, offset nueva_lin
+; 	; mov AH, 09
+; 	; int 21
+; 	ret
+; -------------------------------------------------------------------
+
 ciclo_poner_dolar_1:
 		mov AL, [DI]
 		cmp AL, 00
@@ -694,65 +863,160 @@ ciclo_poner_dolar_1:
 		inc DI
 		jmp ciclo_poner_dolar_1
 poner_dolar_1:
-		mov AL, 24  ;; dólar
+		mov AL, 24  ;; dólar para nombre
+		mov [DI], AL
+
+		mov DI, offset cod_prod
+ciclo_poner_dolar_2:
+		mov AL, [DI]
+		cmp AL, 00
+		je poner_dolar_2
+		inc DI
+		jmp ciclo_poner_dolar_2
+poner_dolar_2:
+		mov AL, 24  ;; dólar para cod_prod
 		mov [DI], AL
 		;; imprimir normal
-		mov DX, offset cod_name
-		mov AH, 09
-		int 21
-		mov DX, offset nueva_lin
-		mov AH, 09
-		int 21
+		print cod_prod
+		print nueva_lin
+		print cod_name
+		print nueva_lin
+
+		;; imprimir con interrupcion, precio
 		mov AX, [num_price]
 		call numAcadena
-		;; [numero] tengo la cadena convertida
+		; [numero] tengo la cadena convertida
 		mov BX, 0001
 		mov CX, 0005
 		mov DX, offset numero
 		mov AH, 40
 		int 21
-		mov DX, offset nueva_lin
-		mov AH, 09
+		print nueva_lin
+
+		;;imprimir con int , unidades
+		mov AX, [num_units]
+		call numAcadena
+		; [numero] tengo la cadena convertida
+		mov BX, 0001
+		mov CX, 0005
+		mov DX, offset numero
+		mov AH, 40
 		int 21
-		mov DX, offset nueva_lin
-		mov AH, 09
-		int 21
+
+		print nueva_lin
+		print nueva_lin
 		ret
 
 ;;; ENTRADA:
 ;;    BX -> handle
 imprimir_estructura_html:
-		mov BX, [handle_reps]
-		mov AH, 40
-		mov CH, 00
-		mov CL, 04
-		mov DX, offset tr_html
-		int 21
-		;;
-		mov BX, [handle_reps]
-		mov AH, 40
-		mov CH, 00
-		mov CL, 04
-		mov DX, offset td_html
-		int 21
-		;;
-		mov DX, offset cod_prod
-		mov SI, 0000
+	mov BX, [handle_reps]
+	mov AH, 40
+	mov CH, 00
+	mov CL, 04
+	mov DX, offset tr_html
+	int 21
+	;;
+	mov BX, [handle_reps]
+	mov AH, 40
+	mov CH, 00
+	mov CL, 04
+	mov DX, offset td_html
+	int 21
+	;;
+	mov DX, offset cod_prod
+	mov SI, 0000
 ciclo_escribir_codigo:
+	mov DI, DX
+	mov AL, [DI]
+	cmp AL, 00
+	je escribir_desc
+	cmp SI, 0006
+	je escribir_desc
+	mov CX, 0001
+	mov BX, [handle_reps]
+	mov AH, 40
+	int 21
+	inc DX
+	inc SI
+	jmp ciclo_escribir_codigo
+; -----------------------------------------------------
+escribir_desc: ;;LA DESCRIPCION
+	;;
+	mov BX, [handle_reps]
+	mov AH, 40
+	mov CH, 00
+	mov CL, 05
+	mov DX, offset tdc_html
+	int 21
+	;;
+	mov BX, [handle_reps]
+	mov AH, 40
+	mov CH, 00
+	mov CL, 04
+	mov DX, offset td_html
+	int 21
+	;;
+	mov DX, offset cod_name
+	mov SI, 0000
+ciclo_escribir_desc:
+	mov DI, DX
+	mov AL, [DI]
+	cmp AL, 00
+	je escribir_precio
+	cmp SI, 0026
+	je escribir_precio
+	mov CX, 0001
+	mov BX, [handle_reps]
+	mov AH, 40
+	int 21
+	inc DX
+	inc SI
+	jmp ciclo_escribir_desc
+	;;
+; -----------------------------------------------------
+escribir_precio: ;;EL PRECIO
+	;;
+	mov BX, [handle_reps]
+	mov AH, 40
+	mov CH, 00
+	mov CL, 05
+	mov DX, offset tdc_html
+	int 21
+	;;
+	mov BX, [handle_reps]
+	mov AH, 40
+	mov CH, 00
+	mov CL, 04
+	mov DX, offset td_html
+	int 21
+	;;
+	;convertir num a cadena
+	mov AX, [num_price]
+	call numAcadena
+
+	mov DX, offset numero
+	mov SI, 0000
+ciclo_escribir_precio:
 		mov DI, DX
 		mov AL, [DI]
 		cmp AL, 00
-		je escribir_desc
-		cmp SI, 0006
-		je escribir_desc
+		; je escribir_unidades
+		je escribir_unidades
+		cmp SI, 0005
+		; je escribir_unidades
+		je escribir_unidades
 		mov CX, 0001
 		mov BX, [handle_reps]
 		mov AH, 40
 		int 21
 		inc DX
 		inc SI
-		jmp ciclo_escribir_codigo
-escribir_desc:
+		jmp ciclo_escribir_precio
+		;;
+; -----------------------------------------------------
+
+escribir_unidades: ;;UNIDADES
 		;;
 		mov BX, [handle_reps]
 		mov AH, 40
@@ -768,14 +1032,18 @@ escribir_desc:
 		mov DX, offset td_html
 		int 21
 		;;
-		mov DX, offset cod_name
+		;convertir num a cadena
+		mov AX, [num_units]
+		call numAcadena
+
+		mov DX, offset numero
 		mov SI, 0000
-ciclo_escribir_desc:
+ciclo_escribir_unidades:
 		mov DI, DX
 		mov AL, [DI]
 		cmp AL, 00
 		je cerrar_tags
-		cmp SI, 0026
+		cmp SI, 0005
 		je cerrar_tags
 		mov CX, 0001
 		mov BX, [handle_reps]
@@ -783,8 +1051,10 @@ ciclo_escribir_desc:
 		int 21
 		inc DX
 		inc SI
-		jmp ciclo_escribir_desc
+		jmp ciclo_escribir_unidades
 		;;
+; -----------------------------------------------------
+
 cerrar_tags:
 		mov BX, [handle_reps]
 		mov AH, 40
